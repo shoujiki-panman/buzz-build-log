@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROJECT BUZZ — 正直バズ計画</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Titan+One&family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Toy Story brand palette */
+    --ts-blue:#1A48A0; --ts-yellow:#FFEE15; --ts-red:#F1060B;
+    --sky:#79BEE9; --sky-deep:#5AA7DC; --cloud:#FFFFFF;
+    --ink:#12306B; --paper:#FFFDF2;
+    /* Buzz accents */
+    --buzz-purple:#6C4AB6; --buzz-lime:#A6C931;
+    --logo:"Titan One","Gill Sans Ultra Bold","Gill Sans",cursive;
+    --jp:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN",sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--jp); font-weight:500; color:var(--ink); background:var(--sky); font-size:16.5px; line-height:1.95}
+
+  /* ===== Andy's wallpaper ===== */
+  .wallpaper{
+    background:linear-gradient(180deg,var(--sky) 0%,#8FCCF0 100%);
+    background-color:var(--sky); position:relative; overflow:hidden;
+  }
+  .cl{position:absolute; background:var(--cloud); border-radius:999px; opacity:.95}
+  .cl::before,.cl::after{content:""; position:absolute; background:var(--cloud); border-radius:50%}
+  .cl::before{width:55%; height:120%; left:12%; top:-55%}
+  .cl::after{width:42%; height:95%; right:14%; top:-38%}
+
+  /* ===== HERO ===== */
+  header{padding:15vh 6vw 12vh; text-align:center; position:relative}
+  .logo-top{
+    font-family:var(--logo); font-size:clamp(52px,15vw,132px); line-height:1;
+    color:var(--ts-yellow); letter-spacing:.01em; position:relative; z-index:2;
+    -webkit-text-stroke:3px var(--ts-blue);
+    text-shadow:
+      0 0 0 var(--ts-blue),
+      4px 4px 0 var(--ts-blue), -4px 4px 0 var(--ts-blue),
+      4px -4px 0 var(--ts-blue), -4px -4px 0 var(--ts-blue),
+      0 9px 0 var(--ts-blue), 0 13px 22px rgba(18,48,107,.35);
+  }
+  .logo-top .l{display:inline-block}
+  .logo-top .l:nth-child(odd){transform:rotate(-3.5deg) translateY(2px)}
+  .logo-top .l:nth-child(even){transform:rotate(3deg) translateY(-3px)}
+  .banner{
+    display:inline-block; background:var(--ts-red); transform:skewX(-8deg) rotate(-1.5deg);
+    padding:10px 34px 12px; margin-top:14px; position:relative; z-index:2;
+    box-shadow:0 6px 0 rgba(18,48,107,.3);
+  }
+  .banner b{
+    display:inline-block; transform:skewX(8deg);
+    font-family:var(--logo); font-size:clamp(30px,8.6vw,72px); line-height:1;
+    color:var(--ts-yellow); letter-spacing:.34em; margin-right:-.34em;
+  }
+  .tagline{
+    margin-top:34px; font-weight:900; font-size:clamp(17px,4.4vw,26px);
+    color:#fff; text-shadow:0 2px 0 var(--sky-deep), 0 4px 10px rgba(18,48,107,.35);
+    position:relative; z-index:2;
+  }
+  .tagline small{display:block; font-size:.62em; font-weight:800; margin-top:6px; opacity:.95}
+
+  /* ===== section banner (STORY-style) ===== */
+  main{max-width:820px; margin:0 auto; padding:26px 5vw 90px}
+  section{margin-top:58px}
+  .sec-banner{
+    display:inline-block; background:var(--ts-red); transform:skewX(-8deg) rotate(-1deg);
+    padding:6px 24px 8px; box-shadow:0 4px 0 rgba(18,48,107,.28); margin-bottom:6px;
+  }
+  .sec-banner span{
+    display:inline-block; transform:skewX(8deg); font-family:var(--logo);
+    color:var(--ts-yellow); font-size:19px; letter-spacing:.3em; margin-right:-.3em;
+  }
+  h2{
+    font-weight:900; font-size:clamp(23px,5.6vw,32px); color:#fff; line-height:1.6;
+    text-shadow:0 2px 0 var(--sky-deep), 0 3px 8px rgba(18,48,107,.3); margin:10px 0 18px;
+  }
+  .card{
+    background:var(--paper); border:4px solid var(--ts-blue); border-radius:20px;
+    padding:22px 20px; box-shadow:0 7px 0 rgba(18,48,107,.32);
+  }
+  .card p.lead{font-size:15.5px; font-weight:700; color:var(--ink)}
+
+  /* stats */
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:18px}
+  .stat{
+    background:var(--ts-yellow); border:3px solid var(--ts-blue); border-radius:16px;
+    text-align:center; padding:16px 6px; box-shadow:0 4px 0 rgba(18,48,107,.3);
+  }
+  .stat b{font-family:var(--logo); font-size:clamp(22px,5.6vw,34px); color:var(--ts-blue); display:block; line-height:1.15}
+  .stat span{font-size:11.5px; font-weight:900; color:var(--ink); letter-spacing:.08em}
+  .stat .todo{color:var(--ts-red)}
+
+  /* ===== sim ===== */
+  .modes{display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap}
+  .modes button{
+    flex:1; min-width:150px; font-family:var(--jp); font-weight:900; font-size:16px;
+    color:#fff; border:3px solid var(--ts-blue); border-radius:999px; padding:12px 8px;
+    cursor:pointer; box-shadow:0 4px 0 rgba(18,48,107,.32); transition:transform .06s;
+  }
+  .modes button:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(18,48,107,.32)}
+  .modes button:focus-visible{outline:3px dashed var(--ts-red); outline-offset:3px}
+  #m-fly{background:var(--buzz-lime)}
+  #m-grab{background:var(--buzz-purple)}
+  .modes button[aria-pressed="true"]{outline:4px solid var(--ts-yellow)}
+  .simbox{border:4px solid var(--ts-blue); border-radius:16px; overflow:hidden; background:#BFE3F7}
+  canvas{display:block; width:100%; height:auto}
+  .phase{
+    margin-top:12px; background:var(--ts-blue); color:var(--ts-yellow);
+    border-radius:12px; padding:10px 16px; font-weight:800; font-size:15px; min-height:46px;
+  }
+
+  /* ===== blueprint ===== */
+  .plate{border:4px solid var(--ts-blue); border-radius:16px; overflow:hidden; background:#fff; margin-top:16px}
+  .plate-cap{
+    background:var(--ts-blue); color:var(--ts-yellow); font-family:var(--logo);
+    letter-spacing:.22em; font-size:14px; padding:8px 18px;
+  }
+  .todo-box{
+    margin-top:18px; background:#fff; border:3px dashed var(--ts-red); border-radius:16px;
+    padding:16px 18px; font-weight:800; font-size:15.5px; color:var(--ts-red);
+  }
+  .todo-box em{font-style:normal; color:var(--ink)}
+
+  /* ===== roadmap ===== */
+  .act{display:flex; gap:16px; padding:18px 2px; align-items:flex-start; border-bottom:3px dotted rgba(26,72,160,.35)}
+  .act:last-child{border:none}
+  .act-star{
+    flex:none; width:58px; height:58px; display:grid; place-items:center;
+    background:var(--ts-yellow); border:3px solid var(--ts-blue); border-radius:50%;
+    font-family:var(--logo); font-size:23px; color:var(--ts-blue);
+    box-shadow:0 4px 0 rgba(18,48,107,.3);
+  }
+  .act.now .act-star{background:var(--buzz-lime)}
+  .act h3{font-weight:900; font-size:18.5px; color:var(--ink)}
+  .act h3 .now-tag{
+    display:inline-block; background:var(--ts-red); color:#fff; font-size:11px;
+    border-radius:999px; padding:2px 12px; margin-left:10px; vertical-align:middle; letter-spacing:.1em;
+  }
+  .act p{font-size:14.8px; font-weight:600; color:#3d5382; margin-top:2px}
+
+  .oss li{margin:12px 0 12px 4px; list-style:none; font-weight:700; font-size:15px}
+  .oss code{
+    font-family:var(--mono); background:var(--ts-yellow); border:2px solid var(--ts-blue);
+    border-radius:8px; padding:2px 10px; font-size:13.5px; color:var(--ts-blue); font-weight:700;
+  }
+  .oss span{display:block; font-weight:600; font-size:14px; color:#3d5382; margin-top:2px}
+
+  footer{text-align:center; padding:0 6vw 80px}
+  footer .banner b{font-size:clamp(17px,4.6vw,30px); letter-spacing:.18em; margin-right:-.18em}
+  footer p{margin-top:22px; color:#fff; font-weight:800; font-size:12px; letter-spacing:.14em; text-shadow:0 2px 0 var(--sky-deep)}
+</style>
+</head>
+<body>
+
+<div class="wallpaper">
+  <div class="cl" style="width:150px;height:46px;top:9%;left:6%"></div>
+  <div class="cl" style="width:110px;height:36px;top:22%;right:8%"></div>
+  <div class="cl" style="width:190px;height:56px;top:58%;left:-30px;opacity:.8"></div>
+  <div class="cl" style="width:130px;height:42px;bottom:8%;right:12%;opacity:.85"></div>
+
+  <header>
+    <div class="logo-top" aria-label="PROJECT">
+      <span class="l">P</span><span class="l">R</span><span class="l">O</span><span class="l">J</span><span class="l">E</span><span class="l">C</span><span class="l">T</span>
+    </div>
+    <div class="banner"><b>BUZZ</b></div>
+    <p class="tagline">落ちてるんじゃない、飛んでるんだ。<small>本物のフィギュアを、本物のドローンで。— 正直バズ計画</small></p>
+  </header>
+
+<main>
+
+  <!-- ===== MISSION ===== -->
+  <section>
+    <div class="sec-banner"><span>MISSION</span></div>
+    <h2>飛ぶ気ゼロのおもちゃを、本気の工学で飛ばす</h2>
+    <div class="card">
+      <p class="lead">ボタンは全部ダミー、プロペラは手で回すだけ。その市販フィギュアを自作FPV機と一体化させ、映画の飛行シーンを現実の部屋で再現する。飾りのプロペラ位置に本物のモーターを重ねる——「おもちゃのプロペラが本当に回って飛ぶ」一点に賭けた設計。</p>
+      <div class="stats">
+        <div class="stat"><b>265g</b><span class="todo">バズ本体・要実測</span></div>
+        <div class="stat"><b>x3.2</b><span>推力の余裕</span></div>
+        <div class="stat"><b>16週</b><span>初飛行まで</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FLIGHT ===== -->
+  <section>
+    <div class="sec-banner"><span>FLIGHT</span></div>
+    <h2>完成イメージ（動く）</h2>
+    <div class="card">
+      <div class="modes">
+        <button id="m-fly" aria-pressed="true">🚀 第1弾 飛ぶ</button>
+        <button id="m-grab" aria-pressed="false">🦾 第3弾 掴む</button>
+      </div>
+      <div class="simbox"><canvas id="sim" width="740" height="430" aria-label="バズ機の飛行アニメーション"></canvas></div>
+      <div class="phase" id="phase">…</div>
+    </div>
+  </section>
+
+  <!-- ===== BLUEPRINT ===== -->
+  <section>
+    <div class="sec-banner"><span>BLUEPRINT</span></div>
+    <h2>設計図 REV 0</h2>
+
+    <div class="plate">
+      <div class="plate-cap">TOP VIEW — 上から</div>
+      <svg viewBox="0 0 740 540" width="100%" role="img" aria-label="上面図">
+        <style>
+          .thick{stroke:#12306B;stroke-width:9;stroke-linecap:round}
+          .prop{fill:rgba(166,201,49,.22);stroke:#A6C931;stroke-width:4}
+          .fig{fill:#fff;stroke:#6C4AB6;stroke-width:4}
+          .dummy{stroke:#F1060B;stroke-width:4;stroke-dasharray:9 7;fill:none}
+          .dl{stroke:#12306B;stroke-width:2}
+          .dt{font:800 16px "M PLUS Rounded 1c",sans-serif;fill:#12306B}
+          .dr{font:800 13px "M PLUS Rounded 1c",sans-serif;fill:#F1060B}
+        </style>
+        <g transform="translate(370,245)">
+          <line x1="-102" y1="-102" x2="102" y2="102" class="thick"/>
+          <line x1="-102" y1="102" x2="102" y2="-102" class="thick"/>
+          <circle cx="-102" cy="-102" r="51" class="prop"/><circle cx="102" cy="-102" r="51" class="prop"/>
+          <circle cx="-102" cy="102" r="51" class="prop"/><circle cx="102" cy="102" r="51" class="prop"/>
+          <g fill="#12306B"><circle cx="-102" cy="-102" r="10"/><circle cx="102" cy="-102" r="10"/><circle cx="-102" cy="102" r="10"/><circle cx="102" cy="102" r="10"/></g>
+          <g class="dummy">
+            <line x1="-27" y1="-27" x2="-92" y2="-92"/><line x1="27" y1="-27" x2="92" y2="-92"/>
+            <line x1="-27" y1="27" x2="-92" y2="92"/><line x1="27" y1="27" x2="92" y2="92"/>
+          </g>
+          <g class="fig">
+            <circle cx="0" cy="-67" r="17"/>
+            <rect x="-23" y="-52" width="46" height="88" rx="13"/>
+            <rect x="-7" y="36" width="6" height="66" rx="3"/><rect x="1" y="36" width="6" height="66" rx="3"/>
+            <rect x="-70" y="-48" width="47" height="9" rx="4"/><rect x="23" y="-48" width="47" height="9" rx="4"/>
+          </g>
+        </g>
+        <text x="40" y="52" class="dt">緑の円 = 本物のプロペラ（5インチ）</text>
+        <text x="40" y="78" class="dr">赤い点線 = バズの飾りプロペラ（重ねて飾る）</text>
+        <line x1="268" y1="452" x2="472" y2="452" class="dl"/>
+        <line x1="268" y1="442" x2="268" y2="462" class="dl"/><line x1="472" y1="442" x2="472" y2="462" class="dl"/>
+        <text x="370" y="484" text-anchor="middle" class="dt">モーター間 250mm</text>
+        <text x="370" y="508" text-anchor="middle" class="dr">※仮の値。飾りプロペラを測って確定</text>
+      </svg>
+    </div>
+
+    <div class="plate">
+      <div class="plate-cap">SIDE VIEW — 横から</div>
+      <svg viewBox="0 0 740 320" width="100%" role="img" aria-label="側面図">
+        <g transform="translate(370,178)">
+          <g stroke="#A6C931" stroke-width="6" stroke-linecap="round"><line x1="-160" y1="-70" x2="-68" y2="-70"/><line x1="68" y1="-70" x2="160" y2="-70"/></g>
+          <g fill="#12306B"><rect x="-124" y="-68" width="16" height="20" rx="3"/><rect x="108" y="-68" width="16" height="20" rx="3"/></g>
+          <line x1="-120" y1="-38" x2="120" y2="-38" class="thick"/>
+          <rect x="-44" y="-36" width="88" height="22" rx="5" fill="#6C4AB6"/>
+          <text x="0" y="-21" text-anchor="middle" style="font:800 11px sans-serif" fill="#FFEE15">FC + バッテリー</text>
+          <g class="fig">
+            <circle cx="-108" cy="9" r="16"/>
+            <rect x="-94" y="-3" width="120" height="26" rx="12"/>
+            <rect x="26" y="2" width="80" height="9" rx="4"/>
+            <rect x="-146" y="1" width="44" height="8" rx="4"/>
+          </g>
+          <circle cx="0" cy="9" r="10" fill="none" stroke="#F1060B" stroke-width="4"/>
+          <line x1="0" y1="-1" x2="0" y2="19" stroke="#F1060B" stroke-width="4"/>
+          <text x="0" y="50" text-anchor="middle" class="dr">重心をここ（機体の中心）に合わせる</text>
+          <text x="0" y="-106" text-anchor="middle" class="dt">うつ伏せスーパーマン姿勢でマウント</text>
+          <line x1="-225" y1="82" x2="225" y2="82" stroke="#12306B" stroke-width="3"/>
+          <text x="140" y="72" style="font:700 13px 'M PLUS Rounded 1c'" fill="#3d5382">脚 60mm（3Dプリント）</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="todo-box">
+      バズが届いたら測る3つ → 図面をREV 1へ<br>
+      <em>① 実際の重さ　② 飾りプロペラの位置と間隔　③ フィギュア単体の重心</em>
+    </div>
+  </section>
+
+  <!-- ===== ROADMAP ===== -->
+  <section>
+    <div class="sec-banner"><span>ROADMAP</span></div>
+    <h2>3弾構想 —「飛ぶおもちゃのAI身体化」</h2>
+    <div class="card">
+      <div class="act now">
+        <div class="act-star">I</div>
+        <div><h3>飛ぶ + 光る<span class="now-tag">いまここ・16週間</span></h3>
+        <p>4〜5インチ機を自作しバズと一体化。急上昇・部屋一周・スウープ着地の3モーションを屋内自律飛行で。胸のエンブレムLEDは飛行と連動。</p></div>
+      </div>
+      <div class="act">
+        <div class="act-star">II</div>
+        <div><h3>話す</h3>
+        <p>タカラトミー31cm版が主役。Pi Zero 2W+スピーカーで音声対話（正直パンマンvoice基盤を流用）。「バズ、飛べ」の一言で離陸。</p></div>
+      </div>
+      <div class="act">
+        <div class="act-star">III</div>
+        <div><h3>掴む（最終フェーズ）</h3>
+        <p>グリッパーとカメラで物を認識し、掴み、運ぶ。ホバリング精度±数cmの研究級テーマ。未踏アドバンスト候補。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== OSS ===== -->
+  <section>
+    <div class="sec-banner"><span>OPEN&nbsp;SOURCE</span></div>
+    <h2>使う世の中の知識</h2>
+    <div class="card">
+      <ul class="oss">
+        <li><code>ArduPilot/ardupilot</code><span>機体の頭脳。AP_Scripting/examples のLua公式サンプルを3モーションの土台に</span></li>
+        <li><code>mavlink/MAVSDK-Python</code><span>第2弾「音声指示→飛行コマンド」の変換層。ドローンAPIの標準ライブラリ</span></li>
+        <li><code>ArduPilot SITL + Gazebo</code><span>実機の前にPC内で飛ばして確認するシミュレータ</span></li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="banner"><b>TO INFINITY — VIA THE CEILING</b></div>
+  <p>PROJECT BUZZ / 正直バズ計画 — ファンメイド・非営利。公式とは関係ありません。</p>
+</footer>
+</div>
+
+<script>
+(function(){
+  const cv=document.getElementById('sim'),ctx=cv.getContext('2d');
+  const out=document.getElementById('phase');
+  const bF=document.getElementById('m-fly'),bG=document.getElementById('m-grab');
+  const W=cv.width,H=cv.height;
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let mode='fly',t=0,last=null;
+  const BED={x:56,y:H-88,w:164,h:46};
+  const BLOCK={x:W-178,y:H-70,w:42,h:30};
+  const ease=u=>u<0?0:u>1?1:u*u*(3-2*u);
+  const by=()=>BED.y-22;
+  const FLY=[
+    [0,1,'待機中 — ベッドの上で発進準備',null],
+    [1,3.5,'burst_takeoff() — 垂直に急上昇！',p=>{const u=ease((p-1)/2.5);return{x:BED.x+BED.w/2,y:by()-(by()-108)*u,a:-5*u}}],
+    [3.5,9.5,'room_loop() — 体を傾けて部屋を一周',p=>{const u=(p-3.5)/6;
+      if(u<.5){const v=ease(u/.5);return{x:BED.x+BED.w/2+(W-118-BED.x-BED.w/2)*v,y:108+18*Math.sin(v*Math.PI),a:-22*Math.sin(v*Math.PI)}}
+      const v=ease((u-.5)/.5);return{x:(W-118)-((W-118)-222)*v,y:108+26*Math.sin(v*Math.PI),a:22*Math.sin(v*Math.PI)}}],
+    [9.5,13,'swoop_land() — 掬い上げてベッドに着地',p=>{const u=ease((p-9.5)/3.5);
+      return{x:222+(BED.x+BED.w/2-222)*u,y:136+(by()-136)*u+58*Math.sin(u*Math.PI)*(1-u),a:-14*Math.sin(u*Math.PI)+10*u*u}}],
+    [13,14.5,'ミッション完了 —「落ちてるんじゃない、飛んでるんだ」',null]
+  ];
+  const GRAB=[
+    [0,1,'第3弾プレビュー — 目標: 積み木「A」',null],
+    [1,3,'離陸して目標の上へ',p=>{const u=ease((p-1)/2);return{x:BED.x+BED.w/2+(BLOCK.x+21-BED.x-BED.w/2)*u,y:by()-(by()-118)*ease(Math.min(1,u*2)),a:-10*Math.sin(u*Math.PI)}}],
+    [3,5,'カメラで認識 → 精密降下',p=>{const u=ease((p-3)/2);return{x:BLOCK.x+21,y:118+(BLOCK.y-58-118)*u,a:0}}],
+    [5,6,'🦾 掴んだ！',p=>({x:BLOCK.x+21,y:BLOCK.y-58,a:0,hold:p>5.4})],
+    [6,9,'ベッドまで運搬',p=>{const u=ease((p-6)/3);return{x:BLOCK.x+21-(BLOCK.x+21-BED.x-BED.w/2)*u,y:BLOCK.y-58-(BLOCK.y-58-138)*Math.sin(u*Math.PI),a:9*Math.sin(u*Math.PI),hold:true}}],
+    [9,11,'そっと置いて着地',p=>{const u=ease((p-9)/2);return{x:BED.x+BED.w/2,y:138+(by()-138)*u,a:0,hold:u<.5}}],
+    [11,12.5,'ミッション完了 — おもちゃが、おもちゃを助けた',null]
+  ];
+  const DUR={fly:14.5,grab:12.5};
+  const seg=(l,p)=>{for(const s of l){if(p>=s[0]&&p<s[1])return s}return l[l.length-1]};
+
+  function cloud(x,y,s){
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.ellipse(x,y,42*s,16*s,0,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(x-12*s,y-9*s,13*s,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(x+13*s,y-7*s,10*s,0,7);ctx.fill();
+  }
+  function craft(x,y,a,t,hold){
+    ctx.save();ctx.translate(x,y);ctx.rotate(a*Math.PI/180);
+    ctx.strokeStyle='#12306B';ctx.lineWidth=4;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(-42,-15);ctx.lineTo(42,-15);ctx.stroke();
+    const blur=8+5*Math.sin(t*42);
+    [[-42],[42]].forEach(([px])=>{ctx.strokeStyle='#A6C931';ctx.lineWidth=4;
+      ctx.beginPath();ctx.moveTo(px-18,-24);ctx.lineTo(px+18,-24);ctx.stroke();
+      ctx.globalAlpha=.35;ctx.beginPath();ctx.moveTo(px-blur-10,-24);ctx.lineTo(px+blur+10,-24);ctx.stroke();ctx.globalAlpha=1;});
+    ctx.fillStyle='#fff';ctx.strokeStyle='#6C4AB6';ctx.lineWidth=3.5;
+    ctx.beginPath();ctx.roundRect(-33,-6,72,15,8);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.arc(-40,1,9,0,7);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.roundRect(39,-2,28,6,3);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.roundRect(-62,-2,23,5,2);ctx.fill();ctx.stroke();
+    if(mode==='grab'){ctx.strokeStyle='#6C4AB6';ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(0,9);ctx.lineTo(-7,24);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(0,9);ctx.lineTo(7,24);ctx.stroke();
+      if(hold){ctx.fillStyle='#F1060B';ctx.beginPath();ctx.roundRect(-14,22,28,20,3);ctx.fill();
+        ctx.fillStyle='#FFEE15';ctx.font='900 13px sans-serif';ctx.textAlign='center';ctx.fillText('A',0,37);}}
+    ctx.restore();
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#8FCCF0');g.addColorStop(1,'#BFE3F7');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    cloud(120,64,1);cloud(360,40,.8);cloud(600,80,1.1);cloud(480,150,.6);
+    ctx.fillStyle='#E7D3A8';ctx.fillRect(0,H-46,W,46);
+    ctx.fillStyle='#D9BE8B';for(let x=0;x<W;x+=74){ctx.fillRect(x,H-46,2,46);}
+    ctx.fillStyle='#1A48A0';ctx.beginPath();ctx.roundRect(BED.x,BED.y,BED.w,BED.h,9);ctx.fill();
+    ctx.fillStyle='#F1060B';ctx.beginPath();ctx.roundRect(BED.x,BED.y,BED.w,12,{tl:9,tr:9,bl:0,br:0});ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.roundRect(BED.x+8,BED.y-10,50,17,6);ctx.fill();
+    ctx.fillStyle='#12306B';ctx.font='900 12px "M PLUS Rounded 1c",sans-serif';ctx.textAlign='center';
+    ctx.fillText('ベッド（発着地点）',BED.x+BED.w/2,BED.y+33);
+    const p=t%DUR[mode],s=seg(mode==='fly'?FLY:GRAB,p);
+    let pos={x:BED.x+BED.w/2,y:by(),a:0,hold:false};
+    if(s[3])pos={...pos,...s[3](p)};
+    if(mode==='fly'&&p>=13)pos={x:BED.x+BED.w/2,y:by(),a:0};
+    if(mode==='grab'){
+      const held=(p>=5.4&&p<10);
+      if(!held&&p<5.4){ctx.fillStyle='#F1060B';ctx.beginPath();ctx.roundRect(BLOCK.x,BLOCK.y,BLOCK.w,BLOCK.h,4);ctx.fill();
+        ctx.fillStyle='#FFEE15';ctx.font='900 15px sans-serif';ctx.fillText('A',BLOCK.x+21,BLOCK.y+21);}
+      if(p>=10){ctx.fillStyle='#F1060B';ctx.beginPath();ctx.roundRect(BED.x+BED.w/2-14,BED.y-28,28,20,4);ctx.fill();
+        ctx.fillStyle='#FFEE15';ctx.font='900 13px sans-serif';ctx.fillText('A',BED.x+BED.w/2,BED.y-13);}
+      pos.hold=held;
+    }
+    craft(pos.x,pos.y,pos.a,t,pos.hold);
+    out.textContent=s[2];
+  }
+  function loop(ts){if(last===null)last=ts;if(!reduce)t+=(ts-last)/1000;last=ts;draw();requestAnimationFrame(loop);}
+  const set=m=>{mode=m;t=0;bF.setAttribute('aria-pressed',m==='fly');bG.setAttribute('aria-pressed',m==='grab');};
+  bF.addEventListener('click',()=>set('fly'));
+  bG.addEventListener('click',()=>set('grab'));
+  if(reduce)t=7;
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
