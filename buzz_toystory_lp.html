@@ -167,7 +167,7 @@
       <span class="l">P</span><span class="l">R</span><span class="l">O</span><span class="l">J</span><span class="l">E</span><span class="l">C</span><span class="l">T</span>
     </div>
     <div class="banner"><b>BUZZ</b></div>
-    <p class="tagline">落ちてるんじゃない、飛んでるんだ。<small>本物のフィギュアを、本物のドローンで。— 正直バズ計画</small></p>
+    <p class="tagline">無限の彼方へ、さあ行くぞ！<small>本物のフィギュアを、本物のドローンで。— 正直バズ計画</small></p>
   </header>
 
 <main>
@@ -179,9 +179,9 @@
     <div class="card">
       <p class="lead">ボタンは全部ダミー、プロペラは手で回すだけ。その市販フィギュアを自作FPV機と一体化させ、映画の飛行シーンを現実の部屋で再現する。飾りのプロペラ位置に本物のモーターを重ねる——「おもちゃのプロペラが本当に回って飛ぶ」一点に賭けた設計。</p>
       <div class="stats">
-        <div class="stat"><b>265g</b><span class="todo">バズ本体・要実測</span></div>
+        <div class="stat"><b>264g</b><span>バズ本体・実測済み</span></div>
         <div class="stat"><b>x3.2</b><span>推力の余裕</span></div>
-        <div class="stat"><b>16週</b><span>初飛行まで</span></div>
+        <div class="stat"><b>9/30</b><span>初飛行の目標日</span></div>
       </div>
     </div>
   </section>
@@ -203,7 +203,7 @@
   <!-- ===== BLUEPRINT ===== -->
   <section>
     <div class="sec-banner"><span>BLUEPRINT</span></div>
-    <h2>設計図 REV 0</h2>
+    <h2>設計図 REV 1（実測反映）</h2>
 
     <div class="plate">
       <div class="plate-cap">TOP VIEW — 上から</div>
@@ -234,12 +234,12 @@
             <rect x="-70" y="-48" width="47" height="9" rx="4"/><rect x="23" y="-48" width="47" height="9" rx="4"/>
           </g>
         </g>
-        <text x="40" y="52" class="dt">緑の円 = 本物のプロペラ（5インチ）</text>
+        <text x="40" y="52" class="dt">緑の円 = 本物のプロペラ（3インチ）</text>
         <text x="40" y="78" class="dr">赤い点線 = バズの飾りプロペラ（重ねて飾る）</text>
         <line x1="268" y1="452" x2="472" y2="452" class="dl"/>
         <line x1="268" y1="442" x2="268" y2="462" class="dl"/><line x1="472" y1="442" x2="472" y2="462" class="dl"/>
-        <text x="370" y="484" text-anchor="middle" class="dt">モーター間 250mm</text>
-        <text x="370" y="508" text-anchor="middle" class="dr">※仮の値。飾りプロペラを測って確定</text>
+        <text x="370" y="484" text-anchor="middle" class="dt">モーター対角 210mm</text>
+        <text x="370" y="508" text-anchor="middle" class="dr">飾りプロペラ4本の間隔を実測して確定</text>
       </svg>
     </div>
 
@@ -269,8 +269,8 @@
     </div>
 
     <div class="todo-box">
-      バズが届いたら測る3つ → 図面をREV 1へ<br>
-      <em>① 実際の重さ　② 飾りプロペラの位置と間隔　③ フィギュア単体の重心</em>
+      残りの実測 → 図面をREV 2へ（重さ264g・対角210mmは実測済み）<br>
+      <em>① フィギュア単体の重心（吊り下げで測る）　② 上蓋のネジ穴位置（固定プレート用）</em>
     </div>
   </section>
 
@@ -281,13 +281,13 @@
     <div class="card">
       <div class="act now">
         <div class="act-star">I</div>
-        <div><h3>飛ぶ + 光る<span class="now-tag">いまここ・16週間</span></h3>
-        <p>4〜5インチ機を自作しバズと一体化。急上昇・部屋一周・スウープ着地の3モーションを屋内自律飛行で。胸のエンブレムLEDは飛行と連動。</p></div>
+        <div><h3>飛ぶ<span class="now-tag">いまここ・第一章</span></h3>
+        <p>3インチ機を自作しバズと一体化。屋内の目視飛行で映画の飛行シーンを撮り、10月末に動画を公開。急上昇・部屋一周・スウープ着地の3モーションはシミュレータで検証済み（実機のAI自律は第3弾で）。</p></div>
       </div>
       <div class="act">
         <div class="act-star">II</div>
-        <div><h3>話す</h3>
-        <p>タカラトミー31cm版が主役。Pi Zero 2W+スピーカーで音声対話（正直パンマンvoice基盤を流用）。「バズ、飛べ」の一言で離陸。</p></div>
+        <div><h3>光る + 話す</h3>
+        <p>タカラトミー31cm版が主役。胸のエンブレムLEDが飛行と連動し、音声対話（正直パンマンvoice基盤を流用）。「バズ、飛べ」の一言で離陸。</p></div>
       </div>
       <div class="act">
         <div class="act-star">III</div>
@@ -303,9 +303,9 @@
     <h2>使う世の中の知識</h2>
     <div class="card">
       <ul class="oss">
-        <li><code>ArduPilot/ardupilot</code><span>機体の頭脳。AP_Scripting/examples のLua公式サンプルを3モーションの土台に</span></li>
+        <li><code>betaflight/betaflight</code><span>第一章（目視飛行）の機体の頭脳。定番のドローン制御ソフト</span></li>
         <li><code>mavlink/MAVSDK-Python</code><span>第2弾「音声指示→飛行コマンド」の変換層。ドローンAPIの標準ライブラリ</span></li>
-        <li><code>ArduPilot SITL + Gazebo</code><span>実機の前にPC内で飛ばして確認するシミュレータ</span></li>
+        <li><code>ArduPilot SITL + Lua</code><span>AI自律（第3弾）用の先行資産。飛行モーション3種をシミュレータで検証済み</span></li>
       </ul>
     </div>
   </section>
@@ -338,7 +338,7 @@
       const v=ease((u-.5)/.5);return{x:(W-118)-((W-118)-222)*v,y:108+26*Math.sin(v*Math.PI),a:22*Math.sin(v*Math.PI)}}],
     [9.5,13,'swoop_land() — 掬い上げてベッドに着地',p=>{const u=ease((p-9.5)/3.5);
       return{x:222+(BED.x+BED.w/2-222)*u,y:136+(by()-136)*u+58*Math.sin(u*Math.PI)*(1-u),a:-14*Math.sin(u*Math.PI)+10*u*u}}],
-    [13,14.5,'ミッション完了 —「落ちてるんじゃない、飛んでるんだ」',null]
+    [13,14.5,'ミッション完了 —「無限の彼方へ、さあ行くぞ！」',null]
   ];
   const GRAB=[
     [0,1,'第3弾プレビュー — 目標: 積み木「A」',null],
