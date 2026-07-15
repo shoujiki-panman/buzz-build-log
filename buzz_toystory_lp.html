@@ -104,6 +104,7 @@
   .modes button:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(18,48,107,.32)}
   .modes button:focus-visible{outline:3px dashed var(--ts-red); outline-offset:3px}
   #m-fly{background:var(--buzz-lime)}
+  #m-talk{background:var(--ts-blue)}
   #m-grab{background:var(--buzz-purple)}
   .modes button[aria-pressed="true"]{outline:4px solid var(--ts-yellow)}
   .simbox{border:4px solid var(--ts-blue); border-radius:16px; overflow:hidden; background:#BFE3F7}
@@ -193,6 +194,7 @@
     <div class="card">
       <div class="modes">
         <button id="m-fly" aria-pressed="true">🚀 第1弾 飛ぶ</button>
+        <button id="m-talk" aria-pressed="false">✨ 第2弾 光る+話す</button>
         <button id="m-grab" aria-pressed="false">🦾 第3弾 掴む</button>
       </div>
       <div class="simbox"><canvas id="sim" width="740" height="430" aria-label="バズ機の飛行アニメーション"></canvas></div>
@@ -322,7 +324,7 @@
 (function(){
   const cv=document.getElementById('sim'),ctx=cv.getContext('2d');
   const out=document.getElementById('phase');
-  const bF=document.getElementById('m-fly'),bG=document.getElementById('m-grab');
+  const bF=document.getElementById('m-fly'),bG=document.getElementById('m-grab'),bT=document.getElementById('m-talk');
   const W=cv.width,H=cv.height;
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let mode='fly',t=0,last=null;
@@ -349,7 +351,16 @@
     [9,11,'そっと置いて着地',p=>{const u=ease((p-9)/2);return{x:BED.x+BED.w/2,y:138+(by()-138)*u,a:0,hold:u<.5}}],
     [11,12.5,'ミッション完了 — おもちゃが、おもちゃを助けた',null]
   ];
-  const DUR={fly:14.5,grab:12.5};
+  const TALK=[
+    [0,1.5,'第2弾プレビュー — タカラトミー31cm版が主役',null],
+    [1.5,3,'🗣「バズ、飛べ」— 声で話しかける',null],
+    [3,4.5,'✨ 胸のエンブレムが光って応答',null],
+    [4.5,7,'voice ON — 声だけで離陸！',p=>{const u=ease((p-4.5)/2.5);return{x:BED.x+BED.w/2,y:by()-(by()-140)*u,a:0}}],
+    [7,10,'ホバリングしながら会話（正直パンマンvoice流用）',p=>({x:BED.x+BED.w/2,y:140+8*Math.sin((p-7)*2.2),a:4*Math.sin((p-7)*1.7)})],
+    [10,12,'「了解、着陸する」— ゆっくり着地',p=>{const u=ease((p-10)/2);return{x:BED.x+BED.w/2,y:140+(by()-140)*u,a:0}}],
+    [12,13.5,'ミッション完了 — 光って、話して、飛んだ',null]
+  ];
+  const DUR={fly:14.5,grab:12.5,talk:13.5};
   const seg=(l,p)=>{for(const s of l){if(p>=s[0]&&p<s[1])return s}return l[l.length-1]};
 
   function cloud(x,y,s){
@@ -358,7 +369,7 @@
     ctx.beginPath();ctx.arc(x-12*s,y-9*s,13*s,0,7);ctx.fill();
     ctx.beginPath();ctx.arc(x+13*s,y-7*s,10*s,0,7);ctx.fill();
   }
-  function craft(x,y,a,t,hold){
+  function craft(x,y,a,t,hold,glow){
     ctx.save();ctx.translate(x,y);ctx.rotate(a*Math.PI/180);
     ctx.strokeStyle='#12306B';ctx.lineWidth=4;ctx.lineCap='round';
     ctx.beginPath();ctx.moveTo(-42,-15);ctx.lineTo(42,-15);ctx.stroke();
@@ -371,6 +382,10 @@
     ctx.beginPath();ctx.arc(-40,1,9,0,7);ctx.fill();ctx.stroke();
     ctx.beginPath();ctx.roundRect(39,-2,28,6,3);ctx.fill();ctx.stroke();
     ctx.beginPath();ctx.roundRect(-62,-2,23,5,2);ctx.fill();ctx.stroke();
+    if(glow){const g=8+3*Math.sin(t*6);
+      ctx.fillStyle='rgba(255,238,21,.35)';ctx.beginPath();ctx.arc(-5,2,g+8,0,7);ctx.fill();
+      ctx.fillStyle='#FFEE15';ctx.beginPath();ctx.arc(-5,2,6,0,7);ctx.fill();
+      ctx.strokeStyle='#F1060B';ctx.lineWidth=2;ctx.beginPath();ctx.arc(-5,2,6,0,7);ctx.stroke();}
     if(mode==='grab'){ctx.strokeStyle='#6C4AB6';ctx.lineWidth=3;
       ctx.beginPath();ctx.moveTo(0,9);ctx.lineTo(-7,24);ctx.stroke();
       ctx.beginPath();ctx.moveTo(0,9);ctx.lineTo(7,24);ctx.stroke();
@@ -391,7 +406,7 @@
     ctx.fillStyle='#fff';ctx.beginPath();ctx.roundRect(BED.x+8,BED.y-10,50,17,6);ctx.fill();
     ctx.fillStyle='#12306B';ctx.font='900 12px "M PLUS Rounded 1c",sans-serif';ctx.textAlign='center';
     ctx.fillText('ベッド（発着地点）',BED.x+BED.w/2,BED.y+33);
-    const p=t%DUR[mode],s=seg(mode==='fly'?FLY:GRAB,p);
+    const p=t%DUR[mode],s=seg(mode==='fly'?FLY:mode==='talk'?TALK:GRAB,p);
     let pos={x:BED.x+BED.w/2,y:by(),a:0,hold:false};
     if(s[3])pos={...pos,...s[3](p)};
     if(mode==='fly'&&p>=13)pos={x:BED.x+BED.w/2,y:by(),a:0};
@@ -403,12 +418,23 @@
         ctx.fillStyle='#FFEE15';ctx.font='900 13px sans-serif';ctx.fillText('A',BED.x+BED.w/2,BED.y-13);}
       pos.hold=held;
     }
-    craft(pos.x,pos.y,pos.a,t,pos.hold);
+    if(mode==='talk'){
+      if(p>=3)pos.glow=true;
+      if(p>=1.5&&p<4.5){
+        ctx.fillStyle='#fff';ctx.strokeStyle='#12306B';ctx.lineWidth=3;
+        ctx.beginPath();ctx.roundRect(BED.x+BED.w+18,by()-64,132,40,12);ctx.fill();ctx.stroke();
+        ctx.beginPath();ctx.moveTo(BED.x+BED.w+34,by()-24);ctx.lineTo(BED.x+BED.w+24,by()-6);ctx.lineTo(BED.x+BED.w+52,by()-24);ctx.closePath();ctx.fill();ctx.stroke();
+        ctx.fillStyle='#12306B';ctx.font='900 15px "M PLUS Rounded 1c",sans-serif';ctx.textAlign='center';
+        ctx.fillText('バズ、飛べ！',BED.x+BED.w+84,by()-38);
+      }
+    }
+    craft(pos.x,pos.y,pos.a,t,pos.hold,pos.glow);
     out.textContent=s[2];
   }
   function loop(ts){if(last===null)last=ts;if(!reduce)t+=(ts-last)/1000;last=ts;draw();requestAnimationFrame(loop);}
-  const set=m=>{mode=m;t=0;bF.setAttribute('aria-pressed',m==='fly');bG.setAttribute('aria-pressed',m==='grab');};
+  const set=m=>{mode=m;t=0;bF.setAttribute('aria-pressed',m==='fly');bT.setAttribute('aria-pressed',m==='talk');bG.setAttribute('aria-pressed',m==='grab');};
   bF.addEventListener('click',()=>set('fly'));
+  bT.addEventListener('click',()=>set('talk'));
   bG.addEventListener('click',()=>set('grab'));
   if(reduce)t=7;
   requestAnimationFrame(loop);
