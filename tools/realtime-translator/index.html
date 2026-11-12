@@ -98,6 +98,11 @@
   .latest-ja{font-size:clamp(28px,5.2vw,46px);line-height:1.38;font-weight:900;letter-spacing:-.01em;word-break:break-word;min-height:1.38em}
   .latest-ja.empty{color:var(--faint);font-weight:700;font-size:clamp(22px,4vw,32px)}
   .latest-ja.small{font-size:clamp(20px,3.6vw,28px);font-weight:700;line-height:1.55}
+  .latest-ja.provisional{opacity:.62;font-weight:700}
+  .latest-ja.partial{opacity:.85}
+  .provisional-tag{display:none;font-size:11px;font-weight:800;color:var(--warn-text);background:var(--warn-bg);border:1px solid var(--warn-line);padding:4px 8px;border-radius:999px;white-space:nowrap}
+  .provisional-tag.show{display:inline-flex}
+  .card-ja.partial{color:var(--muted)}
   .latest-en{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:15.5px;line-height:1.7;word-break:break-word}
   .latest-en:empty{display:none}
   .latest-note{margin-top:12px;background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-text);border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.6;display:none}
@@ -216,6 +221,7 @@
   <section class="latest" aria-live="polite" aria-label="最新の翻訳">
     <div class="latest-head">
       <span class="latest-label" id="latestLabel">最新の訳 — 日本語</span>
+      <span class="provisional-tag" id="provisionalTag">暫定訳 ・ 聞き取り中</span>
       <div class="latest-actions">
         <button type="button" class="icon-btn" id="speakLatestBtn" title="最新の訳を読み上げる" aria-label="最新の訳を読み上げる">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.6 5.4a9 9 0 0 1 0 13.2"/></svg>
@@ -325,6 +331,12 @@
   var idSeq = 1;
   var translationQueue = [];
   var queueProcessing = false;
+  var provisionalTag = $('provisionalTag');
+  var interimTimer = null;
+  var interimGen = 0;
+  var interimBusy = false;
+  var provisional = null; // {original, translated, snapshotMode, ttsLang}
+  var lastInterimText = '';
 
   var UNAVAILABLE_MSG = 'この環境では翻訳機能が使えません。Chrome 最新版で開いてください。';
 
@@ -500,6 +512,107 @@
     return null;
   }
 
+  function splitIntoChunks(text, src){
+    var t = (text||'').trim();
+    if(t.length <= 60) return [t];
+    // まず文単位に分ける
+    var sentences = t.match(/[^.!?。！？\n]+[.!?。！？]*/g) || [t];
+    var chunks = [];
+    sentences.forEach(function(s){
+      var seg = s.trim(); if(!seg) return;
+      if(seg.length <= 70){ chunks.push(seg); return; }
+      // 長い文は句読点・接続の切れ目でさらに分ける
+      var parts;
+      if(src==='ja'){
+        parts = seg.match(/[^、,；;]+[、,；;]?/g) || [seg];
+      } else {
+        parts = seg.match(/[^,;]+[,;]?/g) || [seg];
+      }
+      var buf = '';
+      (parts||[]).forEach(function(p){
+        var piece = (p||'').trim(); if(!piece) return;
+        // 英語の接続詞の手前でも切れるようにする
+        if(src!=='ja' && piece.length > 70){
+          var sub = piece.split(/\s+(?=(?:and|but|or|because|so that|while|when|which|that)\b)/i);
+          sub.forEach(function(sp, idx){
+            var spt = sp.trim(); if(!spt) return;
+            if(buf && (buf.length + spt.length + 1 > 70)){ chunks.push(buf.trim()); buf = spt; }
+            else { buf = buf ? buf + ' ' + spt : spt; }
+            if(idx === sub.length-1 && buf.length > 70){ chunks.push(buf.trim()); buf=''; }
+          });
+          return;
+        }
+        if(buf && (buf.length + piece.length + 1 > 70)){ chunks.push(buf.trim()); buf = piece; }
+        else { buf = buf ? buf + (src==='ja' ? '' : ' ') + piece : piece; }
+      });
+      if(buf.trim()) chunks.push(buf.trim());
+    });
+    return chunks.length ? chunks : [t];
+  }
+
+  async function translateChunked(text, src, tgt, onProgress){
+    var chunks = splitIntoChunks(text, src);
+    if(chunks.length===1){
+      return await translateOnDevice(text, src, tgt);
+    }
+    var joiner = (tgt==='ja') ? '' : ' ';
+    var done = [];
+    for(var i=0;i<chunks.length;i++){
+      var part = await translateOnDevice(chunks[i], src, tgt);
+      if(part==null || part===''){
+        // 1チャンク失敗したら全体を1回で再試行、それもダメなら失敗
+        if(i===0) return await translateOnDevice(text, src, tgt);
+        break;
+      }
+      done.push(part);
+      if(onProgress){
+        try{ onProgress(done.join(joiner), i+1, chunks.length); }catch(e){}
+      }
+    }
+    return done.length ? done.join(joiner) : null;
+  }
+
+  function clearProvisional(){
+    provisional = null;
+    if(provisionalTag) provisionalTag.classList.remove('show');
+  }
+
+  function scheduleInterimTranslate(interimTextVal){
+    var text = (interimTextVal||'').trim();
+    if(!text || text.length < 2){ return; }
+    if(text===lastInterimText && provisional && provisional.original===text) return;
+    lastInterimText = text;
+    var myGen = ++interimGen;
+    var snapshotMode = mode;
+    var L = snapshotMode==='en-ja' ? {src:'en',tgt:'ja'} : {src:'ja',tgt:'en'};
+    clearTimeout(interimTimer);
+    interimTimer = setTimeout(async function(){
+      if(myGen!==interimGen) return;
+      if(isTranslatorUnavailable()) return;
+      if(interimBusy) return; // 前の暫定訳が処理中なら次回更新に任せる
+      interimBusy = true;
+      try{
+        var out = await translateChunked(text, L.src, L.tgt, function(partial){
+          if(myGen!==interimGen) return;
+          provisional = { original:text, translated:partial, snapshotMode:snapshotMode };
+          renderLatestOnly();
+        });
+        if(myGen!==interimGen) return;
+        if(out){
+          provisional = { original:text, translated:out, snapshotMode:snapshotMode };
+          renderLatestOnly();
+        }
+      }catch(e){}
+      interimBusy = false;
+      // 処理中に新しい中間テキストが来ていたらすぐ追いかける
+      if(lastInterimText && lastInterimText!==text && interimGen===myGen+0){
+        // gen は schedule 時に進んでいるので、ここでは何もしない（次の schedule が処理する）
+      }
+    }, 400);
+  }
+
+  function renderLatestOnly(){ render(); }
+
   function speak(text, lang){
     if(!text || !('speechSynthesis' in window)) return;
     try{
@@ -520,10 +633,20 @@
     if(history.length===0){
       if(!historyList.contains(emptyState)) historyList.appendChild(emptyState);
       emptyState.style.display='block';
-      latestText.textContent='ここに最新の訳が大きく表示されます';
-      latestText.className='latest-ja empty';
-      latestOriginal.textContent='';
-      latestNote.classList.remove('show');
+      if(provisional && provisional.translated){
+        latestLabel.textContent = '最新の訳 — ' + (provisional.snapshotMode==='en-ja' ? '日本語' : '英語');
+        latestText.textContent = provisional.translated;
+        latestText.className = 'latest-ja provisional';
+        latestOriginal.textContent = '聞き取り中：' + provisional.original;
+        latestNote.classList.remove('show');
+        if(provisionalTag) provisionalTag.classList.add('show');
+      } else {
+        latestText.textContent='ここに最新の訳が大きく表示されます';
+        latestText.className='latest-ja empty';
+        latestOriginal.textContent='';
+        latestNote.classList.remove('show');
+        if(provisionalTag) provisionalTag.classList.remove('show');
+      }
       return;
     }
     emptyState.style.display='none';
@@ -533,19 +656,26 @@
       var top=document.createElement('div'); top.className='card-top';
       var time=document.createElement('span'); time.className='card-time'; time.textContent=item.time;
       var dir=document.createElement('span'); dir.className='card-dir';
-      if(item.pending) dir.textContent=item.dirLabel + ' · 翻訳中';
+      if(item.dropped) dir.textContent=item.dirLabel + ' · スキップ（最新優先）';
+      else if(item.pending && item.translated!=null) dir.textContent=item.dirLabel + ' · 翻訳中（途中まで表示）';
+      else if(item.pending) dir.textContent=item.dirLabel + ' · 翻訳中';
       else if(item.translated!=null) dir.textContent=item.dirLabel + ' · オンデバイス';
       else dir.textContent=item.dirLabel + ' · 原文のみ';
       top.appendChild(time); top.appendChild(dir);
-      var main=document.createElement('div'); main.className='card-ja' + (item.pending ? ' pending' : '');
-      if(item.pending) main.textContent='翻訳中…';
-      else if(item.translated!=null) main.textContent=item.translated;
-      else main.textContent=item.original;
+      var main=document.createElement('div');
+      if(item.dropped){ main.className='card-ja'; main.textContent=item.original; }
+      else if(item.pending && item.translated!=null){ main.className='card-ja partial'; main.textContent=item.translated; }
+      else if(item.pending){ main.className='card-ja pending'; main.textContent='翻訳中…'; }
+      else if(item.translated!=null){ main.className='card-ja'; main.textContent=item.translated; }
+      else { main.className='card-ja'; main.textContent=item.original; }
       card.appendChild(top); card.appendChild(main);
-      if(item.translated!=null){
+      if(item.translated!=null && !item.pending){
         var orig=document.createElement('div'); orig.className='card-en'; orig.textContent=item.original;
         card.appendChild(orig);
-      } else if(!item.pending){
+      } else if(item.dropped){
+        var dnote=document.createElement('div'); dnote.className='card-note'; dnote.textContent='新しい発言を優先するため、この文の翻訳はスキップしました。原文のみ残しています。';
+        card.appendChild(dnote);
+      } else if(!item.pending && !item.dropped){
         var note=document.createElement('div'); note.className='card-note'; note.textContent=UNAVAILABLE_MSG;
         card.appendChild(note);
       } else {
@@ -555,11 +685,36 @@
       historyList.appendChild(card);
     });
     var latest = history[0];
-    latestLabel.textContent = '最新の訳 — ' + (latest.snapshotMode==='en-ja' ? '日本語' : '英語') + (latest.translated!=null ? '（オンデバイス）' : latest.pending ? '' : '（原文）');
-    if(latest.pending){
-      latestText.textContent='翻訳中…';
-      latestText.className='latest-ja';
-      latestOriginal.textContent='原文：' + latest.original;
+    // 暫定訳が最新の確定文より新しければ、暫定訳を大きく表示する（確定待ちの文があるときはそちら優先）
+    var latestIsPending = latest.pending;
+    if(provisional && provisional.translated && !latestIsPending && provisional.original!==latest.original){
+      latestLabel.textContent = '最新の訳 — ' + (provisional.snapshotMode==='en-ja' ? '日本語' : '英語');
+      latestText.textContent = provisional.translated;
+      latestText.className = 'latest-ja provisional';
+      latestOriginal.textContent = '聞き取り中：' + provisional.original;
+      latestNote.classList.remove('show');
+      if(provisionalTag) provisionalTag.classList.add('show');
+      return;
+    }
+    if(provisionalTag) provisionalTag.classList.remove('show');
+    latestLabel.textContent = '最新の訳 — ' + (latest.snapshotMode==='en-ja' ? '日本語' : '英語') + (!latest.pending && latest.translated!=null ? '（オンデバイス）' : latest.pending ? '' : '（原文）');
+    if(latest.pending && latest.translated!=null){
+      latestText.textContent=latest.translated;
+      latestText.className='latest-ja partial';
+      latestOriginal.textContent='原文：' + latest.original + '（翻訳中 — 訳せた部分から表示しています）';
+      latestNote.classList.remove('show');
+    } else if(latest.pending){
+      // 確定直後は暫定訳があればそれを薄く残し、なければ「翻訳中…」
+      if(provisional && provisional.translated && provisional.original===latest.original){
+        latestText.textContent=provisional.translated;
+        latestText.className='latest-ja provisional';
+        latestOriginal.textContent='原文：' + latest.original;
+        if(provisionalTag) provisionalTag.classList.add('show');
+      } else {
+        latestText.textContent='翻訳中…';
+        latestText.className='latest-ja';
+        latestOriginal.textContent='原文：' + latest.original;
+      }
       latestNote.classList.remove('show');
     } else if(latest.translated!=null){
       latestText.textContent=latest.translated;
@@ -574,14 +729,32 @@
     }
   }
 
+  function pruneQueue(keepNewest){
+    // 新しさ優先：待機中の古い文を捨て、最新 keepNewest 件だけ残す
+    var keep = (typeof keepNewest==='number') ? keepNewest : 1;
+    while(translationQueue.length > keep){
+      var dropped = translationQueue.shift();
+      dropped.pending = false;
+      dropped.translated = null;
+      dropped.failed = true;
+      dropped.dropped = true;
+    }
+  }
+
   function addAndTranslate(original, dirMode){
     var text = (original||'').trim(); if(!text) return;
     var snapshotMode = dirMode || mode;
     var L = snapshotMode==='en-ja' ? {src:'en',tgt:'ja',tts:'ja-JP',dirLabel:'EN → JA'} : {src:'ja',tgt:'en',tts:'en-US',dirLabel:'JA → EN'};
-    var item={ id:idSeq++, original:text, translated:null, pending:true, failed:false, dirLabel:L.dirLabel, snapshotMode:snapshotMode, src:L.src, tgt:L.tgt, ttsLang:L.tts, time:fmtTime(new Date()) };
+    var item={ id:idSeq++, original:text, translated:null, pending:true, failed:false, dropped:false, dirLabel:L.dirLabel, snapshotMode:snapshotMode, src:L.src, tgt:L.tgt, ttsLang:L.tts, time:fmtTime(new Date()) };
+    // 暫定訳がこの文のものなら引き継いで即表示（体感の空白を作らない）
+    if(provisional && provisional.original===text && provisional.translated){
+      item.translated = provisional.translated;
+    }
     history.unshift(item); if(history.length>120) history.length=120;
-    render();
     translationQueue.push(item);
+    // 溜まっていたら古い待機文を捨てて最新を優先
+    if(translationQueue.length >= 3) pruneQueue(1);
+    render();
     processQueue();
   }
 
@@ -589,25 +762,38 @@
     if(queueProcessing) return;
     queueProcessing = true;
     while(translationQueue.length>0){
+      // 処理開始前に、溜まった古い文を捨てる（新しい文が2つ以上待っていたら最新だけ残す）
+      if(translationQueue.length >= 2) pruneQueue(1);
       var item = translationQueue.shift();
       if(history.indexOf(item)===-1) continue;
+      if(item.dropped){ render(); continue; }
       try{
         if(isTranslatorUnavailable()){
           item.translated=null; item.failed=true;
         } else {
-          var result = await translateOnDevice(item.original, item.src, item.tgt);
+          var seeded = item.translated; // 暫定訳の引き継ぎ
+          var result = await translateChunked(item.original, item.src, item.tgt, function(partial){
+            // 訳せた部分から表示を伸ばす
+            item.translated = partial;
+            render();
+          });
           if(result){
             item.translated=result; item.failed=false;
+          } else if(seeded){
+            item.translated=seeded; item.failed=false;
           } else {
             item.translated=null; item.failed=true;
           }
         }
       }catch(e){
-        item.translated=null; item.failed=true;
+        if(!item.translated){ item.failed=true; }
       }
       item.pending=false;
+      if(provisional && provisional.original===item.original) clearProvisional();
+      // この文の処理中に新しい文が2つ以上溜まっていたら、この結果は表示するが
+      // 次ループ冒頭で古い待機文は捨てられる
       render();
-      if(item.translated && ttsEnabled && item.snapshotMode===mode){
+      if(item.translated && ttsEnabled && item.snapshotMode===mode && item===history[0]){
         speak(item.translated, item.ttsLang);
       }
     }
@@ -623,15 +809,35 @@
     r.maxAlternatives = 1;
     r.onresult = function(event){
       var interim='';
+      var gotFinal=false;
       for(var i=event.resultIndex;i<event.results.length;i++){
         var res=event.results[i];
         var txt=res[0] && res[0].transcript ? res[0].transcript : '';
         if(res.isFinal){
-          if(txt.trim()) addAndTranslate(txt, mode);
+          if(txt.trim()){ gotFinal=true; addAndTranslate(txt, mode); }
         } else { interim += txt; }
+      }
+      if(gotFinal){
+        // 確定したら中間状態をリセット（暫定訳は addAndTranslate が引き継ぎ済み）
+        interimGen++;
+        clearTimeout(interimTimer);
+        lastInterimText='';
+        interimBox.classList.remove('show'); interimText.textContent='';
+        if(interim.trim()){
+          // 同じイベント内に次の文の中間結果があればそれを暫定訳対象にする
+          interimBox.classList.add('show'); interimText.textContent=interim;
+          scheduleInterimTranslate(interim);
+        } else {
+          // 暫定表示は確定文の描画に任せるため少し遅れて掃除する
+          setTimeout(function(){
+            if(history[0] && !history[0].pending) clearProvisional();
+          }, 0);
+        }
+        return;
       }
       if(interim.trim()){
         interimBox.classList.add('show'); interimText.textContent=interim;
+        scheduleInterimTranslate(interim);
       } else {
         var hasInterim=false;
         for(var j=event.resultIndex;j<event.results.length;j++){ if(!event.results[j].isFinal) hasInterim=true; }
@@ -721,11 +927,13 @@
   }
   function stopListening(){
     shouldListen=false; clearTimeout(restartTimer);
+    clearTimeout(interimTimer); interimGen++; lastInterimText=''; clearProvisional();
     if(recognition){ try{ recognition.stop(); }catch(e){} }
     isListening=false;
     setStatus('','停止中');
     startBtn.textContent='● 聞き取り開始'; startBtn.classList.remove('is-live');
     interimBox.classList.remove('show');
+    render();
     if('speechSynthesis' in window) window.speechSynthesis.cancel();
   }
 
@@ -739,10 +947,11 @@
     latestLabel.textContent='最新の訳 — ' + langs().tgtLabel;
     ttsSub.textContent = mode==='en-ja' ? '訳文（日本語）を音声で読む' : '訳文（英語）を音声で読む';
     manualInput.placeholder = mode==='en-ja' ? 'ここに英語を貼り付け…' : 'ここに日本語を貼り付け／入力…';
+    clearTimeout(interimTimer); interimGen++; lastInterimText=''; clearProvisional();
     try{ if(translator && translator.destroy) translator.destroy(); }catch(e){}
     translator=null; translatorKey=''; translatorState='idle'; translatorPromise=null; downloadPct=null; translatorGen++;
     translatorAlert.classList.remove('show');
-    warmupTranslator(); updateTranslatorUI();
+    warmupTranslator(); updateTranslatorUI(); render();
     if(recognition) recognition.lang=langs().recog;
     showToast(mode==='en-ja' ? '英語 → 日本語 に切り替えました' : '日本語 → 英語 に切り替えました（自分の発言用）');
     if(wasListening){ setTimeout(startListening, 250); }
@@ -752,7 +961,7 @@
 
   startBtn.addEventListener('click', function(){ if(shouldListen) stopListening(); else startListening(); });
   clearBtn.addEventListener('click', function(){
-    history=[]; translationQueue.length=0; render(); showToast('履歴をクリアしました');
+    history=[]; translationQueue.length=0; clearTimeout(interimTimer); interimGen++; lastInterimText=''; clearProvisional(); render(); showToast('履歴をクリアしました');
     interimBox.classList.remove('show'); interimText.textContent='';
   });
   retryTranslatorBtn.addEventListener('click', function(){
